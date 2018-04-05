@@ -1,5 +1,6 @@
 package ca.mcgill.cs.comp409.a4.q1;
 
+import ca.mcgill.cs.comp409.a4.q1.grid.Grid;
 import ca.mcgill.cs.comp409.a4.q1.grid.items.CharacterItem;
 import ca.mcgill.cs.comp409.a4.q1.grid.items.ObstacleItem;
 import ca.mcgill.cs.comp409.a4.q1.grid.items.TileItem;
@@ -24,6 +25,10 @@ public class Driver {
             System.out.println("Invalid arguments to program. All 4 arguments must be valid numbers. Exiting...");
             System.exit(1);
         }
+
+        Grid grid = new Grid(30, 30);
+        grid.initialize(r, n, k);
+        grid.visualize();
 
         TileItem[][] tileGrid = new TileItem[30][30];
         GridPoint2D[][] freeObstacleIndices = new GridPoint2D[30][30];
@@ -107,33 +112,5 @@ public class Driver {
         }
 
 //        visualizeGrid(tileGrid);
-    }
-
-    private static void visualizeGrid(TileItem[][] pTileGrid) {
-        /* Assert grid count and visualize grid */
-        int obstacleCount = 0;
-        int characterCount = 0;
-        int freeTileCount = 0;
-        for (int i = 0; i < 30; i++) {
-            for (int j = 0; j < 30; j++) {
-                System.out.print('[');
-                if (pTileGrid[i][j].getItem() instanceof CharacterItem) {
-                    System.out.print('C');
-                    characterCount++;
-                } else if (pTileGrid[i][j].getItem() instanceof ObstacleItem) {
-                    System.out.print('o');
-                    obstacleCount++;
-                } else {
-                    System.out.print(' ');
-                    freeTileCount++;
-                }
-                System.out.print(']');
-            }
-            System.out.println();
-        }
-        assert obstacleCount + characterCount + freeTileCount == 900;
-        System.out.println("Obstacle count: " + obstacleCount);
-        System.out.println("Free tile count: " + freeTileCount);
-        System.out.println("Character count: " + characterCount);
     }
 }

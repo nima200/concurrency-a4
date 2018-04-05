@@ -57,4 +57,12 @@ public class TileItem implements Comparable<TileItem> {
     public int compareTo(TileItem o) {
         return Integer.compare(this.aId, o.aId);
     }
+
+    public int getX() {
+        return aCoordinates.getX();
+    }
+
+    public int getY() {
+        return aCoordinates.getY();
+    }
 }

@@ -14,6 +14,7 @@ public class CharacterItem implements GridItem {
         aMoveRate = pSpeed;
         aCurrentTile = pCurrentTile;
         aTargetTile = new TileItem(-1, -1);
+        pCurrentTile.setItem(this);
         aRandomSeed = ThreadLocalRandom.current().nextInt(1, 5);
     }
 
@@ -46,6 +47,14 @@ public class CharacterItem implements GridItem {
         releaseTiles(aCurrentTile, pTile);
         aCurrentTile = pTile;
         return true;
+    }
+
+    public int getX() {
+        return aCurrentTile.getX();
+    }
+
+    public int getY() {
+        return aCurrentTile.getY();
     }
 
     private void acquireTiles(TileItem... pTiles) {
