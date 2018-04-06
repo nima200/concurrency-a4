@@ -9,6 +9,7 @@ public class CharacterItem implements GridItem {
     private TileItem aTargetTile;
     private int aMoveRate;
     private int aRandomSeed;
+    private int aMoveCount = 0;
 
     public CharacterItem(TileItem pCurrentTile, int pSpeed) {
         aMoveRate = pSpeed;
@@ -43,6 +44,7 @@ public class CharacterItem implements GridItem {
         /* Assign the current tile as free, update current tile and make sure new current tile has character as occupant */
         aCurrentTile.removeItem();
         pTile.setItem(this);
+        aMoveCount++;
         /* Release control over tiles for others to proceed */
         releaseTiles(aCurrentTile, pTile);
         aCurrentTile = pTile;
@@ -88,5 +90,9 @@ public class CharacterItem implements GridItem {
 
     public TileItem getTargetTile() {
         return aTargetTile;
+    }
+
+    public int getMoveCount() {
+        return aMoveCount;
     }
 }

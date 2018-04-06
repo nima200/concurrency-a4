@@ -14,6 +14,11 @@ import static ca.mcgill.cs.comp409.a4.q1.grid.util.CollectionUtils.flattenArray2
 
 public class Grid {
     private final TileItem[][] aTileItems;
+
+    public List<CharacterItem> getCharacters() {
+        return aCharacters;
+    }
+
     private List<CharacterItem> aCharacters;
 
     public Grid(int dimX, int dimY) {
@@ -41,7 +46,6 @@ public class Grid {
         createObstacles(obstacleCount, obstacleFreeIndexList, freeTileIndices);
         createCharacters(characterCount, characterSpeedRate, freeTileIndices);
     }
-
 
 
     private void createObstacles(int pObstacleCount, LinkedList<GridPoint2D> pObstacleFreeIndices,
@@ -89,6 +93,9 @@ public class Grid {
         pCharacterItem.setTarget(targetTile);
     }
 
+    public TileItem getTile(int x, int y) {
+        return aTileItems[y][x];
+    }
 
     /**
      * Visualizes the grid and prints object counts
