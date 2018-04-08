@@ -27,21 +27,16 @@ public class CharacterPlayer implements Callable<Long> {
         while (start + twoMinutesInMilli > System.currentTimeMillis()) {
             CharacterItem character = aCharacterItems.poll();
             if (character == null) continue;
-            try {
+            if (character.isReady()) {
                 if (tryMoveCharacter(character)) {
                     numMoves++;
-                    character.pause();
-                    /* Add character back in queue for others to move */
-                    aCharacterItems.add(character);
                 } else {
                     aGrid.updateCharacterTarget(character);
-                    character.pause();
-                    aCharacterItems.add(character);
                 }
-            } catch (InterruptedException pE) {
-                System.out.println("Character mover thread unexpectedly interrupted. Exiting");
-                System.exit(1);
+                character.pause();
             }
+            /* Add character back in queue for others to move */
+            aCharacterItems.add(character);
         }
         return numMoves;
     }

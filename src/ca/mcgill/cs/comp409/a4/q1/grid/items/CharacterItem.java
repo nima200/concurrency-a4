@@ -10,6 +10,7 @@ public class CharacterItem implements GridItem {
     private int aMoveRate;
     private int aRandomSeed;
     private int aMoveCount = 0;
+    private long lastPauseTime;
 
     public CharacterItem(TileItem pCurrentTile, int pSpeed) {
         aMoveRate = pSpeed;
@@ -79,8 +80,12 @@ public class CharacterItem implements GridItem {
         return aCurrentTile.equals(aTargetTile);
     }
 
-    public void pause() throws InterruptedException {
-        Thread.sleep(aMoveRate * aRandomSeed);
+    public void pause() {
+        lastPauseTime = System.currentTimeMillis();
+    }
+
+    public boolean isReady() {
+        return System.currentTimeMillis() >= lastPauseTime + (aMoveRate * aRandomSeed);
     }
 
     @Override

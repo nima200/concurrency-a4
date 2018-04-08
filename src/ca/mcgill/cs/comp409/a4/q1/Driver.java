@@ -25,44 +25,50 @@ public class Driver {
             System.out.println("Invalid arguments to program. All 4 arguments must be valid numbers. Exiting...");
             System.exit(1);
         }
+        int avgMaxCount = 0;
+        for (int j = 0; j < 5; j++) {
+            Grid grid = new Grid(30, 30);
+            grid.initialize(r, n, k);
 
-        Grid grid = new Grid(30, 30);
-        grid.initialize(r, n, k);
-
-        ConcurrentLinkedQueue<CharacterItem> characterItems = new ConcurrentLinkedQueue<>(grid.getCharacters());
-        ExecutorService poolExecutor = Executors.newFixedThreadPool(p);
-        List<Future<Long>> results = new ArrayList<>();
-        for (int i = 0; i < p; i++) {
-            results.add(poolExecutor.submit(new CharacterPlayer(characterItems, grid)));
-        }
-
-        for (Future<Long> result : results) {
-            try {
-                result.get();
-            } catch (InterruptedException pE) {
-                System.out.println("Main thread interrupted unexpectedly... Exiting.");
-                pE.printStackTrace();
-                System.exit(1);
-            } catch (ExecutionException pE) {
-                pE.printStackTrace();
-                System.exit(1);
+            ConcurrentLinkedQueue<CharacterItem> characterItems = new ConcurrentLinkedQueue<>(grid.getCharacters());
+            ExecutorService poolExecutor = Executors.newFixedThreadPool(p);
+            List<Future<Long>> results = new ArrayList<>();
+            for (int i = 0; i < p; i++) {
+                results.add(poolExecutor.submit(new CharacterPlayer(characterItems, grid)));
             }
-        }
 
-        int i = 0;
-        List<CharacterItem> characters = new ArrayList<>(characterItems);
-        while (!characterItems.isEmpty()) {
-            CharacterItem characterItem = characterItems.poll();
-            assert characterItem != null;
-            System.out.println("Character " + i + " move count: " + characterItem.getMoveCount());
-            i++;
+            for (Future<Long> result : results) {
+                try {
+                    result.get();
+                } catch (InterruptedException pE) {
+                    System.out.println("Main thread interrupted unexpectedly... Exiting.");
+                    pE.printStackTrace();
+                    System.exit(1);
+                } catch (ExecutionException pE) {
+                    pE.printStackTrace();
+                    System.exit(1);
+                }
+            }
+
+            int i = 0;
+            List<CharacterItem> characters = new ArrayList<>(characterItems);
+            while (!characterItems.isEmpty()) {
+                CharacterItem characterItem = characterItems.poll();
+                assert characterItem != null;
+                System.out.println("Character " + i + " move count: " + characterItem.getMoveCount());
+                i++;
+            }
+            int totalCharMoves = 0;
+            for (CharacterItem characterItem : characters) {
+                totalCharMoves += characterItem.getMoveCount();
+            }
+            avgMaxCount += totalCharMoves;
+            System.out.println("Total characters move count: (round " + j + ") " + totalCharMoves);
+            poolExecutor.shutdown();
         }
-        int totalCharMoves = 0;
-        for (CharacterItem characterItem : characters) {
-            totalCharMoves += characterItem.getMoveCount();
-        }
-        System.out.println("Total characters move count: " + totalCharMoves);
-        poolExecutor.shutdown();
+        avgMaxCount /= 5;
+        System.out.println("Average total characters move count on 5 rounds: " + avgMaxCount);
+
     }
 
 
