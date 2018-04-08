@@ -32,12 +32,12 @@ public class Driver {
 
             ConcurrentLinkedQueue<CharacterItem> characterItems = new ConcurrentLinkedQueue<>(grid.getCharacters());
             ExecutorService poolExecutor = Executors.newFixedThreadPool(p);
-            List<Future<Long>> results = new ArrayList<>();
+            List<Future> results = new ArrayList<>();
             for (int i = 0; i < p; i++) {
                 results.add(poolExecutor.submit(new CharacterPlayer(characterItems, grid)));
             }
 
-            for (Future<Long> result : results) {
+            for (Future result : results) {
                 try {
                     result.get();
                 } catch (InterruptedException pE) {
