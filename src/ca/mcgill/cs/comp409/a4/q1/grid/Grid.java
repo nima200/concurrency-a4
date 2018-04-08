@@ -5,6 +5,7 @@ import ca.mcgill.cs.comp409.a4.q1.grid.items.ObstacleItem;
 import ca.mcgill.cs.comp409.a4.q1.grid.items.TileItem;
 import ca.mcgill.cs.comp409.a4.q1.grid.util.GridPoint2D;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -86,10 +87,18 @@ public class Grid {
         maxDimY = Math.min(aTileItems.length, maxDimY);
         minDimY = Math.max(0, minDimY);
 
-        int x = ThreadLocalRandom.current().nextInt(minDimX, maxDimX);
-        int y = ThreadLocalRandom.current().nextInt(minDimY, maxDimY);
+        List<TileItem> freeNeighborTiles = new ArrayList<>();
 
-        TileItem targetTile = aTileItems[y][x];
+        for (int i = minDimY; i < maxDimY; i++) {
+            for (int j = minDimX; j < maxDimX; j++) {
+                if (!(aTileItems[j][i].getItem() instanceof ObstacleItem))
+                    freeNeighborTiles.add(aTileItems[j][i]);
+            }
+        }
+
+        Collections.shuffle(freeNeighborTiles);
+
+        TileItem targetTile = freeNeighborTiles.get(0);
         pCharacterItem.setTarget(targetTile);
     }
 

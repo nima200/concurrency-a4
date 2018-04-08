@@ -50,13 +50,18 @@ public class Driver {
         }
 
         int i = 0;
+        List<CharacterItem> characters = new ArrayList<>(characterItems);
         while (!characterItems.isEmpty()) {
             CharacterItem characterItem = characterItems.poll();
             assert characterItem != null;
             System.out.println("Character " + i + " move count: " + characterItem.getMoveCount());
             i++;
         }
-
+        int totalCharMoves = 0;
+        for (CharacterItem characterItem : characters) {
+            totalCharMoves += characterItem.getMoveCount();
+        }
+        System.out.println("Total characters move count: " + totalCharMoves);
         poolExecutor.shutdown();
     }
 
