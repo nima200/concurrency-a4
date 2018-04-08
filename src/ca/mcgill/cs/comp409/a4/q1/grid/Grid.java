@@ -78,10 +78,10 @@ public class Grid {
     }
 
     public void updateCharacterTarget(CharacterItem pCharacterItem) {
-        int maxDimX = pCharacterItem.getX() + 4;
-        int minDimX = pCharacterItem.getX() - 4;
-        int maxDimY = pCharacterItem.getY() + 4;
-        int minDimY = pCharacterItem.getY() - 4;
+        int maxDimX = pCharacterItem.getX() + 8;
+        int minDimX = pCharacterItem.getX() - 8;
+        int maxDimY = pCharacterItem.getY() + 8;
+        int minDimY = pCharacterItem.getY() - 8;
         maxDimX = Math.min(aTileItems[0].length, maxDimX);
         minDimX = Math.max(0, minDimX);
         maxDimY = Math.min(aTileItems.length, maxDimY);
@@ -95,10 +95,9 @@ public class Grid {
                     freeNeighborTiles.add(aTileItems[j][i]);
             }
         }
+        int randomIndex = ThreadLocalRandom.current().nextInt(0, freeNeighborTiles.size());
 
-        Collections.shuffle(freeNeighborTiles);
-
-        TileItem targetTile = freeNeighborTiles.get(0);
+        TileItem targetTile = freeNeighborTiles.get(randomIndex);
         pCharacterItem.setTarget(targetTile);
     }
 

@@ -12,11 +12,6 @@ public class GridPoint2D {
         this.y = y;
     }
 
-    public void setLocation(int x, int y) {
-        this.x = x;
-        this.y = y;
-    }
-
     public int getX() {
         return x;
     }

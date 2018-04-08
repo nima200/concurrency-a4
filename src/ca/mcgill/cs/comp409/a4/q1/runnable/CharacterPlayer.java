@@ -4,7 +4,6 @@ import ca.mcgill.cs.comp409.a4.q1.grid.Grid;
 import ca.mcgill.cs.comp409.a4.q1.grid.items.CharacterItem;
 import ca.mcgill.cs.comp409.a4.q1.grid.items.TileItem;
 
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class CharacterPlayer implements Runnable {
@@ -26,10 +25,13 @@ public class CharacterPlayer implements Runnable {
         while (start + twoMinutesInMilli > System.currentTimeMillis()) {
             CharacterItem character = aCharacterItems.poll();
             if (character == null) continue;
+            /* If character is not ready to be moves, skip and add back to queue */
             if (character.isReady()) {
+                /* If character was not able to move a spot, update it to have a new target */
                 if (!tryMoveCharacter(character)) {
                     aGrid.updateCharacterTarget(character);
                 }
+                /* Update the character's pause time */
                 character.pause();
             }
             /* Add character back in queue for others to move */
@@ -37,6 +39,12 @@ public class CharacterPlayer implements Runnable {
         }
     }
 
+    /**
+     * Attempts to move the character to it's next position in the path to it's target.
+     * @param pCharacter Character to try to move
+     * @return True of character made movement progress towards target, false if character
+     * failed by hitting an obstacle or attempting to move to an occupied tile.
+     */
     private boolean tryMoveCharacter(CharacterItem pCharacter) {
         assert pCharacter != null;
         if (pCharacter.atTargetLocation()) {
