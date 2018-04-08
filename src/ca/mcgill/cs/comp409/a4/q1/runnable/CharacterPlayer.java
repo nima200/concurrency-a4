@@ -7,7 +7,7 @@ import ca.mcgill.cs.comp409.a4.q1.grid.items.TileItem;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class CharacterPlayer implements Callable<Long> {
+public class CharacterPlayer implements Runnable {
 
     private ConcurrentLinkedQueue<CharacterItem> aCharacterItems;
     private Grid aGrid;
@@ -20,17 +20,14 @@ public class CharacterPlayer implements Callable<Long> {
     }
 
     @Override
-    public Long call() {
+    public void run() {
         long start = System.currentTimeMillis();
-        long numMoves = 0;
         long twoMinutesInMilli = 2 * 60 * 1000;
         while (start + twoMinutesInMilli > System.currentTimeMillis()) {
             CharacterItem character = aCharacterItems.poll();
             if (character == null) continue;
             if (character.isReady()) {
-                if (tryMoveCharacter(character)) {
-                    numMoves++;
-                } else {
+                if (!tryMoveCharacter(character)) {
                     aGrid.updateCharacterTarget(character);
                 }
                 character.pause();
@@ -38,7 +35,6 @@ public class CharacterPlayer implements Callable<Long> {
             /* Add character back in queue for others to move */
             aCharacterItems.add(character);
         }
-        return numMoves;
     }
 
     private boolean tryMoveCharacter(CharacterItem pCharacter) {

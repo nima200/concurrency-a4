@@ -17,7 +17,6 @@ public class Driver {
         }
         int n = 0, p = 0, r = 0, k = 0;
         try {
-
             n = Integer.parseInt(args[0]);
             p = Integer.parseInt(args[1]);
             r = Integer.parseInt(args[2]);
