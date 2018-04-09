@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+
 #define max(a,b) \
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
@@ -12,13 +14,17 @@
 /* Number of characters in the alphabet */
 #define ALPHABETSIZE 4
 /* Size of the string to match against.  You may need to adjust this. */
-#define STRINGSIZE 100000000
+#define STRINGSIZE 10000000
 
 /* State transition table (ie the DFA) */
 int stateTable[MAXSTATES][ALPHABETSIZE];
 
 /* Initialize the table */
 void initTable() ;
+
+/* Construct a sample string to match against.  Note that this uses characters, encoded in ASCII,
+   so to get 0-based characters you'd need to subtract 'a'. */
+char *buildString() ;
 
 int main(int argc, char* argv[]) {
 
@@ -31,11 +37,11 @@ int main(int argc, char* argv[]) {
     omp_set_num_threads(threads);
 
     char* string = buildString();
+//    printf("%s\n", string);
     char* reg = "^(a+b+(c|d)+)$";
-    int length = (int) (strlen(string));
+    int length = (int) (strlen(string)) - 2;
     int partitionSize = length / threads;
     int globalState = -1;
-    printf("String to match: %s\n", string);
     int threadStates[threads][4];
 #pragma omp master
     {
@@ -74,7 +80,7 @@ int main(int argc, char* argv[]) {
             threadStates[0][i] = currentState;
         }
         globalState = currentState;
-        printf("Master Substring: %s\n", subString_master);
+//        printf("Master Substring: %s\n", subString_master);
         printf("Initial master state of string: %d\n", globalState);
     }
 
@@ -89,7 +95,6 @@ int main(int argc, char* argv[]) {
         strncpy(subString_worker, &string[start], (size_t) end - start);
         subString_worker[end - start] = '\0';
         int outcome_states[4] = {-1, -1, -1, -1};
-        printf("Thread %d substring: %s\n", omp_get_thread_num(), subString_worker);
         for (int j = 0; j < 4; ++j) {
             int currentState = j;
             for (int k = 0; k < strlen(subString_worker); k++) {
