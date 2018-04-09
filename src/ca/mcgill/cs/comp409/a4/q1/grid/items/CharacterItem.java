@@ -36,10 +36,6 @@ public class CharacterItem implements GridItem {
      * @return True if tile was free and character was able to move to it, false otherwise.
      */
     public boolean tryMove(TileItem pTile) {
-        /* Characters can only move 1 unit at a time */
-        assert aTargetTile != null;
-        assert Math.abs(aCurrentTile.getCoordinates().getX() - pTile.getCoordinates().getX()) <= 1;
-        assert Math.abs(aCurrentTile.getCoordinates().getY() - pTile.getCoordinates().getY()) <= 1;
         /* Gain control over current tile and tile moving to */
         acquireTiles(aCurrentTile, pTile);
         if (!pTile.isFree()) {
@@ -89,7 +85,6 @@ public class CharacterItem implements GridItem {
      * @param pTiles Implicit array of tiles
      */
     private void releaseTiles(TileItem... pTiles) {
-        Arrays.sort(pTiles);
         for (TileItem tile :
                 pTiles) {
             tile.release();

@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
     initTable();
     omp_set_num_threads(threads);
 
-    char* string = "aabcaaaaaaabcdddddddddddddddddddddddddddddddddddddddaaaaaaaaaaaaaabbbcdd";
+    char* string = buildString();
     char* reg = "^(a+b+(c|d)+)$";
     int length = (int) (strlen(string));
     int partitionSize = length / threads;
@@ -165,4 +165,39 @@ void initTable() {
     stateTable[4][1] = reject;
     stateTable[4][2] = reject;
     stateTable[4][3] = reject;
+}
+
+/* Construct a sample string to match against.  Note that this uses characters, encoded in ASCII,
+   so to get 0-based characters you'd need to subtract 'a'. */
+char *buildString() {
+    int i;
+    char *s = (char *)malloc(sizeof(char)*(STRINGSIZE));
+    if (s==NULL) {
+        printf("\nOut of memory!\n");
+        exit(1);
+    }
+    int max = STRINGSIZE-3;
+
+    /* seed the rnd generator (use a fixed number rather than the time for testing) */
+    srand((unsigned int)time(NULL));
+
+    /* And build a long string that might actually match */
+    int j=0;
+    while(j<max) {
+        s[j++] = 'a';
+        while (rand()%1000<997 && j<max)
+            s[j++] = 'a';
+        if (j<max)
+            s[j++] = 'b';
+        while (rand()%1000<997 && j<max)
+            s[j++] = 'b';
+        if (j<max)
+            s[j++] = (rand()%2==1) ? 'c' : 'd';
+        while (rand()%1000<997 && j<max)
+            s[j++] = (rand()%2==1) ? 'c' : 'd';
+    }
+    s[max] = 'a';
+    s[max+1] = 'b';
+    s[max+2] = (rand()%2==1) ? 'c' : 'd';
+    return s;
 }

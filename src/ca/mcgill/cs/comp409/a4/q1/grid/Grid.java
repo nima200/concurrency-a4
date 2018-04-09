@@ -91,8 +91,8 @@ public class Grid {
 
         for (int i = minDimY; i < maxDimY; i++) {
             for (int j = minDimX; j < maxDimX; j++) {
-                if (!(aTileItems[j][i].getItem() instanceof ObstacleItem))
-                    freeNeighborTiles.add(aTileItems[j][i]);
+                if (!(aTileItems[i][j].getItem() instanceof ObstacleItem))
+                    freeNeighborTiles.add(aTileItems[i][j]);
             }
         }
         int randomIndex = ThreadLocalRandom.current().nextInt(0, freeNeighborTiles.size());
