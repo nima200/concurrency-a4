@@ -27,52 +27,43 @@ public class Driver {
             System.exit(1);
         }
 
-        int avgMaxCount = 0;
-        /* Try to average 5 runs of the simulation since results are random due to obstacles */
-        for (int j = 0; j < 5; j++) {
-            Grid grid = new Grid(30, 30);
-            grid.initialize(r, n, k);
-            /* Create a concurrent queue of character items for threads to take characters from */
-            ConcurrentLinkedQueue<CharacterItem> characterItems = new ConcurrentLinkedQueue<>(grid.getCharacters());
-            /* Thread pool */
-            ExecutorService poolExecutor = Executors.newFixedThreadPool(p);
-            List<Future> results = new ArrayList<>();
-            /* Submit p new jobs to the pool */
-            for (int i = 0; i < p; i++) {
-                results.add(poolExecutor.submit(new CharacterPlayer(characterItems, grid)));
-            }
-
-            /* Wait for all jobs to complete */
-            for (Future result : results) {
-                try {
-                    result.get();
-                } catch (InterruptedException pE) {
-                    System.out.println("Main thread interrupted unexpectedly... Exiting.");
-                    pE.printStackTrace();
-                    System.exit(1);
-                } catch (ExecutionException pE) {
-                    pE.printStackTrace();
-                    System.exit(1);
-                }
-            }
-
-            int i = 0;
-            /* Get all characters, print their move counts, and add to the total move count*/
-            List<CharacterItem> characters = new ArrayList<>(characterItems);
-            int totalCharMoves = 0;
-            for (CharacterItem characterItem : characters) {
-                System.out.println("Character " + i + " move count: " + characterItem.getMoveCount());
-                totalCharMoves += characterItem.getMoveCount();
-                i++;
-            }
-            /* Add this run's total moves to the average total moves */
-            avgMaxCount += totalCharMoves;
-            System.out.println("Total characters move count: (round " + j + ") " + totalCharMoves);
-            poolExecutor.shutdown();
+        Grid grid = new Grid(30, 30);
+        grid.initialize(r, n, k);
+        /* Create a concurrent queue of character items for threads to take characters from */
+        ConcurrentLinkedQueue<CharacterItem> characterItems = new ConcurrentLinkedQueue<>(grid.getCharacters());
+        /* Thread pool */
+        ExecutorService poolExecutor = Executors.newFixedThreadPool(p);
+        List<Future> results = new ArrayList<>();
+        /* Submit p new jobs to the pool */
+        for (int i = 0; i < p; i++) {
+            results.add(poolExecutor.submit(new CharacterPlayer(characterItems, grid)));
         }
-        /* Report the average moves */
-        avgMaxCount /= 5;
-        System.out.println("Average total characters move count on 5 rounds: " + avgMaxCount);
+
+        /* Wait for all jobs to complete */
+        for (Future result : results) {
+            try {
+                result.get();
+            } catch (InterruptedException pE) {
+                System.out.println("Main thread interrupted unexpectedly... Exiting.");
+                pE.printStackTrace();
+                System.exit(1);
+            } catch (ExecutionException pE) {
+                pE.printStackTrace();
+                System.exit(1);
+            }
+        }
+
+        int i = 0;
+        /* Get all characters, print their move counts, and add to the total move count*/
+        List<CharacterItem> characters = new ArrayList<>(characterItems);
+        int totalCharMoves = 0;
+        for (CharacterItem characterItem : characters) {
+            System.out.println("Character " + i + " move count: " + characterItem.getMoveCount());
+            totalCharMoves += characterItem.getMoveCount();
+            i++;
+        }
+        System.out.println("Total characters move count: " + totalCharMoves);
+        poolExecutor.shutdown();
 
     }
 
