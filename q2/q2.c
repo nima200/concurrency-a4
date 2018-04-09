@@ -3,8 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/time.h>
 
-#define max(a,b) \
+#define max(a, b) \
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a > _b ? _a : _b; })
@@ -14,19 +15,26 @@
 /* Number of characters in the alphabet */
 #define ALPHABETSIZE 4
 /* Size of the string to match against.  You may need to adjust this. */
-#define STRINGSIZE 10000000
+#define STRINGSIZE 999999999
 
 /* State transition table (ie the DFA) */
 int stateTable[MAXSTATES][ALPHABETSIZE];
+int globalState = -1;
 
 /* Initialize the table */
-void initTable() ;
+void initTable();
 
 /* Construct a sample string to match against.  Note that this uses characters, encoded in ASCII,
    so to get 0-based characters you'd need to subtract 'a'. */
-char *buildString() ;
+char *buildString();
 
-int main(int argc, char* argv[]) {
+void worker(int threads, char **partitionStrings, int **threadStates, long partitionSize);
+
+void master(char *string, int **threadStates);
+
+char **partitionString(char *string, int numPartitions);
+
+int main(int argc, char *argv[]) {
 
     if (argc != 2) {
         printf("Invalid number of arguments. Expected: 2, received %d\n", argc);
@@ -34,107 +42,135 @@ int main(int argc, char* argv[]) {
     }
     int threads = atoi(argv[1]) + 1;
     initTable();
-    omp_set_num_threads(threads);
+    char *string = buildString();
 
-    char* string = buildString();
-//    printf("%s\n", string);
-    char* reg = "^(a+b+(c|d)+)$";
-    int length = (int) (strlen(string)) - 2;
-    int partitionSize = length / threads;
-    int globalState = -1;
-    int threadStates[threads][4];
-#pragma omp master
-    {
-        /* INITIAL WORK BY MASTER HAPPENS HERE*/
-        char subString_master[partitionSize + 1];
-        strncpy(subString_master, string, (size_t) partitionSize);
-        subString_master[partitionSize] = '\0';
-        int currentState = subString_master[0] == 'a' ? 0 : 4;
-
-        for (int i = 1; i < partitionSize; ++i) {
-            char nextChar = subString_master[i];
-            switch (nextChar) {
-                case 'a': {
-                    currentState = stateTable[currentState][0];
-                    break;
-                }
-                case 'b': {
-                    currentState = stateTable[currentState][1];
-                    break;
-                }
-                case 'c': {
-                    currentState = stateTable[currentState][2];
-                    break;
-                }
-                case 'd': {
-                    currentState = stateTable[currentState][3];
-                    break;
-                }
-                default: {
-                    currentState = 4;
-                    break;
-                }
-            }
+    unsigned long length = (long) (strlen(string));
+    unsigned long partitionSize = length / threads;
+    int **threadStates = (int **) malloc((threads) * sizeof(int *));
+    for (int i = 0; i < (threads); ++i) {
+        threadStates[i] = (int *) malloc(sizeof(int));
+        for (int j = 0; j < 4; ++j) {
+            threadStates[i][j] = 0;
         }
-        for (int i = 0; i < 4; ++i) {
-            threadStates[0][i] = currentState;
-        }
-        globalState = currentState;
-//        printf("Master Substring: %s\n", subString_master);
-        printf("Initial master state of string: %d\n", globalState);
     }
 
-#pragma omp parallel for
 
-    for (int i = 1; i < threads ; i++) {
-        /* THE PARTITIONED WORK FROM THE WORKER THREADS HAPPENS HERE */
-        char subString_worker[partitionSize + 1];
-        int start = i * partitionSize;
-        /* Make the last thread take any remainder extra characters that are left */
-        int end = i != threads - 1 ? start + partitionSize : max(length, start + partitionSize);
-        strncpy(subString_worker, &string[start], (size_t) end - start);
-        subString_worker[end - start] = '\0';
-        int outcome_states[4] = {-1, -1, -1, -1};
-        for (int j = 0; j < 4; ++j) {
-            int currentState = j;
-            for (int k = 0; k < strlen(subString_worker); k++) {
-                char nextChar = subString_worker[k];
-                switch (nextChar) {
+    char **partitionStrings = partitionString(string, threads);
+
+    struct timeval begin, end;
+    gettimeofday(&begin, NULL);
+    omp_set_num_threads(2);
+    omp_set_nested(1);
+#pragma omp parallel
+    {
+#pragma omp sections
+        {
+#pragma omp section
+            /* MASTER */
+            {
+                master(partitionStrings[0], threadStates);
+            }
+#pragma omp section
+            /* WORKERS */
+            {
+                worker(threads, partitionStrings, threadStates, partitionSize);
+            }
+        }
+    }
+
+
+    for (int i = 0; i < threads; i++) {
+        if (globalState == 4) break;
+        globalState = threadStates[i][globalState];
+    }
+    gettimeofday(&end, NULL);
+    printf("Final global state is: %d, %s\n", globalState, globalState == 3 ? "accept" : "reject");
+    printf("Total time = %f seconds\n",
+           (double) (end.tv_usec - begin.tv_usec) / 1000000 +
+           (double) (end.tv_sec - begin.tv_sec));
+    free(string);
+    for (int i = 0; i < threads; i++) {
+        free(threadStates[i]);
+        free(partitionStrings[i]);
+    }
+    free(threadStates);
+    free(partitionStrings);
+}
+
+
+void master(char *string, int **threadStates) {
+
+    int masterState = string[0] == 'a' ? 0 : 4;
+    if (masterState == 4) {
+        globalState = masterState;
+        return;
+    }
+
+    long partitionSize = strlen(string);
+    for (long i = 1; i < partitionSize; ++i) {
+        char nextChar = string[i];
+        switch (nextChar) {
+            case 'a': {
+                masterState = stateTable[masterState][0];
+                break;
+            }
+            case 'b': {
+                masterState = stateTable[masterState][1];
+                break;
+            }
+            case 'c': {
+                masterState = stateTable[masterState][2];
+                break;
+            }
+            case 'd': {
+                masterState = stateTable[masterState][3];
+                break;
+            }
+            default: {
+                masterState = 4;
+                globalState = masterState;
+                return;
+            }
+        }
+    }
+    globalState = masterState;
+    for (int i = 0; i < 4; ++i) {
+        threadStates[0][i] = globalState;
+    }
+}
+
+void worker(int threads, char **partitionStrings, int **threadStates, long partitionSize) {
+    omp_set_num_threads(threads - 1);
+#pragma omp parallel for
+    for (int i = 1; i < threads; i++) {
+        for (int j = 1; j < 4; j++) {
+            int workerState = j;
+            for (long k = 0; k < partitionSize; k++) {
+                switch (partitionStrings[i][k]) {
                     case 'a': {
-                        currentState = stateTable[currentState][0];
+                        workerState = stateTable[workerState][0];
                         break;
                     }
                     case 'b': {
-                        currentState = stateTable[currentState][1];
+                        workerState = stateTable[workerState][1];
                         break;
                     }
                     case 'c': {
-                        currentState = stateTable[currentState][2];
+                        workerState = stateTable[workerState][2];
                         break;
                     }
                     case 'd': {
-                        currentState = stateTable[currentState][3];
+                        workerState = stateTable[workerState][3];
                         break;
                     }
                     default: {
-                        currentState = 4;
+                        workerState = 4;
                         break;
                     }
                 }
             }
-            outcome_states[j] = currentState;
-            threadStates[i][j] = currentState;
+            threadStates[i][j] = workerState;
         }
-        printf("Thread %d states: { %d, %d, %d, %d }\n", omp_get_thread_num(), outcome_states[0], outcome_states[1], outcome_states[2], outcome_states[3]);
-    }
-    /* THE FINAL WORK BY THREAD 0 HAPPENS HERE */
-#pragma omp master
-    {
-        for (int i = 0; i < threads; ++i) {
-            if (globalState == 4) break;
-            globalState = threadStates[i][globalState];
-        }
-        printf("Final global state is: %s\n", globalState == 3 ? "accept" : "reject");
     }
 }
 
@@ -176,33 +212,49 @@ void initTable() {
    so to get 0-based characters you'd need to subtract 'a'. */
 char *buildString() {
     int i;
-    char *s = (char *)malloc(sizeof(char)*(STRINGSIZE));
-    if (s==NULL) {
+    char *s = (char *) malloc(sizeof(char) * (STRINGSIZE));
+    if (s == NULL) {
         printf("\nOut of memory!\n");
         exit(1);
     }
-    int max = STRINGSIZE-3;
+    unsigned long long max = STRINGSIZE - 3;
 
     /* seed the rnd generator (use a fixed number rather than the time for testing) */
-    srand((unsigned int)time(NULL));
+    srand((unsigned int) time(NULL));
 
     /* And build a long string that might actually match */
-    int j=0;
-    while(j<max) {
+    int j = 0;
+    while (j < max) {
         s[j++] = 'a';
-        while (rand()%1000<997 && j<max)
+        while (rand() % 1000 < 997 && j < max)
             s[j++] = 'a';
-        if (j<max)
+        if (j < max)
             s[j++] = 'b';
-        while (rand()%1000<997 && j<max)
+        while (rand() % 1000 < 997 && j < max)
             s[j++] = 'b';
-        if (j<max)
-            s[j++] = (rand()%2==1) ? 'c' : 'd';
-        while (rand()%1000<997 && j<max)
-            s[j++] = (rand()%2==1) ? 'c' : 'd';
+        if (j < max)
+            s[j++] = (rand() % 2 == 1) ? 'c' : 'd';
+        while (rand() % 1000 < 997 && j < max)
+            s[j++] = (rand() % 2 == 1) ? 'c' : 'd';
     }
     s[max] = 'a';
-    s[max+1] = 'b';
-    s[max+2] = (rand()%2==1) ? 'c' : 'd';
+    s[max + 1] = 'b';
+    s[max + 2] = (rand() % 2 == 1) ? 'c' : 'd';
     return s;
+}
+
+char **partitionString(char *string, int numPartitions) {
+    long length = strlen(string);
+    long partitionSize = length / numPartitions;
+    char **partitionedStrings = (char **) malloc((numPartitions + 1) * sizeof(char *));
+    for (int i = 0; i < numPartitions; i++) {
+        long start = i * partitionSize;
+        long end = start + partitionSize;
+        char *partitionString = (char *) malloc((partitionSize + 1) * sizeof(char));
+        memcpy(partitionString, &string[start], (size_t) end - start);
+        partitionString[partitionSize] = '\0';
+        partitionedStrings[i] = partitionString;
+    }
+    partitionedStrings[numPartitions] = 0;
+    return partitionedStrings;
 }

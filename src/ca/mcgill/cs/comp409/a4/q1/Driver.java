@@ -53,14 +53,13 @@ public class Driver {
             }
         }
 
-        int i = 0;
         /* Get all characters, print their move counts, and add to the total move count*/
         List<CharacterItem> characters = new ArrayList<>(characterItems);
         int totalCharMoves = 0;
-        for (CharacterItem characterItem : characters) {
+        for (int i = 0; i < characters.size(); i++) {
+            CharacterItem characterItem = characters.get(i);
             System.out.println("Character " + i + " move count: " + characterItem.getMoveCount());
             totalCharMoves += characterItem.getMoveCount();
-            i++;
         }
         System.out.println("Total characters move count: " + totalCharMoves);
         poolExecutor.shutdown();
