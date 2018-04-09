@@ -5,17 +5,12 @@
 #include <time.h>
 #include <sys/time.h>
 
-#define max(a, b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a > _b ? _a : _b; })
-
 /* Size of the DFA */
 #define MAXSTATES 5
 /* Number of characters in the alphabet */
 #define ALPHABETSIZE 4
 /* Size of the string to match against.  You may need to adjust this. */
-#define STRINGSIZE 999999999
+#define STRINGSIZE 9999999999
 
 /* State transition table (ie the DFA) */
 int stateTable[MAXSTATES][ALPHABETSIZE];
@@ -40,12 +35,14 @@ int main(int argc, char *argv[]) {
         printf("Invalid number of arguments. Expected: 2, received %d\n", argc);
         exit(1);
     }
+    /* Total number of threads = n + 1, n = number of optimistic threads */
     int threads = atoi(argv[1]) + 1;
     initTable();
     char *string = buildString();
 
     unsigned long length = (long) (strlen(string));
     unsigned long partitionSize = length / threads;
+    /* Mapping for the states of all threads (including master) */
     int **threadStates = (int **) malloc((threads) * sizeof(int *));
     for (int i = 0; i < (threads); ++i) {
         threadStates[i] = (int *) malloc(sizeof(int));
@@ -54,11 +51,12 @@ int main(int argc, char *argv[]) {
         }
     }
 
-
+    /* Partition table for string of all threads */
     char **partitionStrings = partitionString(string, threads);
 
     struct timeval begin, end;
     gettimeofday(&begin, NULL);
+    /* Set two threads, one for master, and one for worker creator */
     omp_set_num_threads(2);
     omp_set_nested(1);
 #pragma omp parallel
@@ -73,21 +71,24 @@ int main(int argc, char *argv[]) {
 #pragma omp section
             /* WORKERS */
             {
-                worker(threads, partitionStrings, threadStates, partitionSize);
+                worker(threads - 1, partitionStrings, threadStates, partitionSize);
             }
         }
     }
 
-
+    /*  Master will gather the final global state through the state mapping table */
     for (int i = 0; i < threads; i++) {
         if (globalState == 4) break;
         globalState = threadStates[i][globalState];
     }
+
     gettimeofday(&end, NULL);
     printf("Final global state is: %d, %s\n", globalState, globalState == 3 ? "accept" : "reject");
     printf("Total time = %f seconds\n",
            (double) (end.tv_usec - begin.tv_usec) / 1000000 +
            (double) (end.tv_sec - begin.tv_sec));
+
+    /* Free resources */
     free(string);
     for (int i = 0; i < threads; i++) {
         free(threadStates[i]);
@@ -97,7 +98,11 @@ int main(int argc, char *argv[]) {
     free(partitionStrings);
 }
 
-
+/**
+ * Attempts to find a matching in the first partition of the string and sets final state in thread state mapping table
+ * @param string Master's partition of the total string to match
+ * @param threadStates Thread state mapping table
+ */
 void master(char *string, int **threadStates) {
 
     int masterState = string[0] == 'a' ? 0 : 4;
@@ -107,6 +112,7 @@ void master(char *string, int **threadStates) {
     }
 
     long partitionSize = strlen(string);
+    /* For each character, look up the state with the character included from the state table */
     for (long i = 1; i < partitionSize; ++i) {
         char nextChar = string[i];
         switch (nextChar) {
@@ -139,8 +145,16 @@ void master(char *string, int **threadStates) {
     }
 }
 
+/**
+ * Spawns 'thread' many worker threads to work in parallel and each take a partition of the string to match.
+ * Reports the final states worker would be in for any possible previous state in the thread states mapping table
+ * @param threads Total number of threads to spawn for the matching
+ * @param partitionStrings Partition strings table for each thread to handle a part of
+ * @param threadStates Thread states mapping table for workers to insert potential final states in to
+ * @param partitionSize Partition size, used for iterating through the partition
+ */
 void worker(int threads, char **partitionStrings, int **threadStates, long partitionSize) {
-    omp_set_num_threads(threads - 1);
+    omp_set_num_threads(threads);
 #pragma omp parallel for
     for (int i = 1; i < threads; i++) {
         for (int j = 1; j < 4; j++) {
@@ -243,6 +257,12 @@ char *buildString() {
     return s;
 }
 
+/**
+ * Partitions a string into numPartitions many partitions
+ * @param string String to partition
+ * @param numPartitions Number of partitions to split string into
+ * @return 2D array of chars, i.e. an array of strings
+ */
 char **partitionString(char *string, int numPartitions) {
     long length = strlen(string);
     long partitionSize = length / numPartitions;
